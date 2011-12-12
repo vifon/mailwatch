@@ -4,35 +4,36 @@ use warnings;
 use strict;
 use 5.010;
 
-if (-e "/tmp/mailwatch") {
-    die "An another instance is running\n";
-}
-
-system("mkfifo /tmp/mailwatch");
-
-my $pid = fork;
-defined($pid) or die "unable to fork: $!\n";
-if ($pid == 0) {
-    exec("inotifywait -e moved_to -e create -m -r --exclude '.*\.swp.{0,1}' -o /tmp/mailwatch ~/mail") or die "unable to exec: $!\n";
-}
+use Linux::Inotify2;
 
 sub cleanup {
-    unlink "/tmp/mailwatch" if -e "/tmp/mailwatch";
-    kill "TERM", $pid;
+    unlink "/var/lock/mailwatch-$ENV{USER}.lock" or die "unable to remove the lock file\n";
     exit(0);
 }
 
-$SIG{INT}   = \&cleanup;
-$SIG{TERM}  = \&cleanup;
-$SIG{HUP}   = \&cleanup;
-$SIG{ABRT}  = \&cleanup;
+$SIG{INT}  = \&cleanup;
+$SIG{TERM} = \&cleanup;
+$SIG{HUP}  = \&cleanup;
+$SIG{ABRT} = \&cleanup;
+
+if (-e "/var/lock/mailwatch-$ENV{USER}.lock") {
+    die "An another instance is running\n";
+} else {
+    open(my $lock, '>', "/var/lock/mailwatch-$ENV{USER}.lock") or die "unable to create the lock file\n";
+    close $lock;
+}
+
+my $inotify = new Linux::Inotify2;
+$inotify->watch($_, IN_MOVED_TO | IN_CREATE) while <$ENV{HOME}/mail/*/new>;
 
 
-open(my $events, '<', "/tmp/mailwatch") or die;
-while (<$events>) {
-    if (/^[^ ]*new/) {
-        open(my $wmii, '|-', "wmiir create /rbar/1mail");
-        print $wmii "colors #000000 #68ff05 #333333\nlabel MAIL\n";
-        close $wmii;
+while (my @events = $inotify->read) {
+    for my $event (@events) {
+        if ($event->fullname =~ m,^$ENV{HOME}/mail/[^/]+/new/,) {
+            open(my $wmii, '|-', "wmiir create /rbar/1mail");
+            print $wmii "colors #000000 #68ff05 #333333\nlabel MAIL\n";
+            close $wmii;
+        }
     }
 }
+cleanup;
