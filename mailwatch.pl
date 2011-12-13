@@ -29,11 +29,9 @@ $inotify->watch($_, IN_MOVED_TO | IN_CREATE) while <$ENV{HOME}/mail/*/new>;
 
 while (my @events = $inotify->read) {
     for my $event (@events) {
-        if ($event->fullname =~ m,^$ENV{HOME}/mail/[^/]+/new/,) {
-            open(my $wmii, '|-', "wmiir create /rbar/1mail");
-            print $wmii "colors #000000 #68ff05 #333333\nlabel MAIL\n";
-            close $wmii;
-        }
+        open(my $wmii, '|-', "wmiir create /rbar/1mail");
+        print $wmii "colors #000000 #68ff05 #333333\nlabel MAIL\n";
+        close $wmii;
     }
 }
 cleanup;
