@@ -24,14 +24,10 @@ if (-e "/var/lock/mailwatch-$ENV{USER}.lock") {
 }
 
 my $inotify = new Linux::Inotify2;
-$inotify->watch($_, IN_MOVED_TO | IN_CREATE) while <$ENV{HOME}/mail/*/new>;
+$inotify->watch($_, IN_MOVED_TO | IN_CREATE, \&notify_xmobar) while <$ENV{HOME}/mail/*/new>;
 
 
-while (my @events = $inotify->read) {
-    for my $event (@events) {
-        notify_xmobar();
-    }
-}
+$inotify->poll while 1;
 cleanup;
 
 sub notify_xmobar {
