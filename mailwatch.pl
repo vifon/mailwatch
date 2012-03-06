@@ -29,9 +29,19 @@ $inotify->watch($_, IN_MOVED_TO | IN_CREATE) while <$ENV{HOME}/mail/*/new>;
 
 while (my @events = $inotify->read) {
     for my $event (@events) {
-        open(my $wmii, '|-', "wmiir create /rbar/1mail");
-        print $wmii "colors #000000 #68ff05 #333333\nlabel MAIL\n";
-        close $wmii;
+        notify_xmobar();
     }
 }
 cleanup;
+
+sub notify_xmobar {
+    open(my $xmobar, '>', "/tmp/mailwatch");
+    print $xmobar "<fc=#68ff05>MAIL</fc> |\n";
+    close $xmobar;
+}
+
+sub notify_wmii {
+    open(my $wmii, '|-', "wmiir create /rbar/1mail");
+    print $wmii "colors #000000 #68ff05 #333333\nlabel MAIL\n";
+    close $wmii;
+}
