@@ -15,8 +15,6 @@ Getopt::Long::Configure(qw(
                               pass_through
                          ));
 
-umask 0177;
-
 my $pipePath = "/tmp/mailwatch";
 my $maildir  = "$ENV{HOME}/mail";
 my $clean    = 0;
@@ -25,9 +23,11 @@ my $umask    = 0177;
 GetOptions(
            'dir|d|mail|m=s' => \$maildir,
            'pipe|p=s'       => \$pipePath,
-           'umask=s'        => sub { umask $_[1]; $umask = $_[1] },
+           'umask=s'        => \$umask,
            'clean|c'        => \$clean,
           );
+
+umask $umask;
 
 {
     local $/ = "/";
